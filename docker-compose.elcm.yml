@@ -1,0 +1,12 @@
+services:
+  alltest-telegraf:
+    environment:
+      TELEGRAF_OUTPUT_SOCKET: tcp://elcm:8094
+    networks:
+      - default
+      - elcm_env
+
+networks:
+  elcm_env:
+    external: true
+    name: elcm-env_default

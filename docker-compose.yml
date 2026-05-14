@@ -55,9 +55,17 @@ services:
       MQTT_TOPIC: ${ALLTEST_MQTT_TOPIC:-mi/topic/elcm}
       PROMETHEUS_EXPORTER_PORT: "8000"
       PUBLISH_INTERVAL_SECONDS: ${ALLTEST_INTERVAL_SECONDS:-1}
-      TELEGRAF_ENABLED: ${ALLTEST_TELEGRAF_ENABLED:-false}
-      TELEGRAF_HOST: ${ALLTEST_TELEGRAF_HOST:-host.docker.internal}
-      TELEGRAF_PORT: ${ALLTEST_TELEGRAF_PORT:-8094}
+
+  alltest-telegraf:
+    image: telegraf:1.34
+    container_name: alltest-telegraf
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      ALLTEST_INTERVAL_SECONDS: ${ALLTEST_INTERVAL_SECONDS:-1}
+      TELEGRAF_OUTPUT_SOCKET: ${ALLTEST_TELEGRAF_OUTPUT_SOCKET:-tcp://host.docker.internal:8094}
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
 
   alltest-prometheus:
     image: prom/prometheus:v2.55.1

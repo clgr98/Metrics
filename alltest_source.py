@@ -4,7 +4,6 @@ import math
 import os
 import random
 import signal
-import socket
 import threading
 import time
 from typing import Callable
@@ -36,13 +35,6 @@ def env_float(name: str, default: float) -> float:
         return default
 
 
-def env_bool(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
 INTERVAL = max(0.2, env_float("PUBLISH_INTERVAL_SECONDS", 1.0))
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "sensor_data_morse")
@@ -50,9 +42,6 @@ MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
 MQTT_PORT = env_int("MQTT_PORT", 1885)
 MQTT_TOPIC = os.getenv("MQTT_TOPIC", "mi/topic/elcm")
 PROMETHEUS_EXPORTER_PORT = env_int("PROMETHEUS_EXPORTER_PORT", 8000)
-TELEGRAF_ENABLED = env_bool("TELEGRAF_ENABLED", False)
-TELEGRAF_HOST = os.getenv("TELEGRAF_HOST", "localhost")
-TELEGRAF_PORT = env_int("TELEGRAF_PORT", 8094)
 
 
 PROM_WINDOWS_NET_RX = Gauge("windows_net_bytes_received_total", "Synthetic received bytes.")
@@ -189,49 +178,6 @@ def prometheus_loop():
         STOP.wait(INTERVAL)
 
 
-def telegraf_loop():
-    if not TELEGRAF_ENABLED:
-        LOG.info("Telegraf sender disabled")
-        return
-
-    i = 0
-    sock = None
-    while not STOP.is_set():
-        if sock is None:
-            try:
-                sock = socket.create_connection((TELEGRAF_HOST, TELEGRAF_PORT), timeout=5)
-                LOG.info("Telegraf sender connected to %s:%s", TELEGRAF_HOST, TELEGRAF_PORT)
-            except Exception as exc:
-                LOG.warning("Telegraf endpoint not ready: %s", exc)
-                STOP.wait(3)
-                continue
-
-        sample = metric_snapshot(i)
-        payload = {
-            "timestamp": sample["timestamp"],
-            "used_mem": sample["used_mem"],
-            "available_mem": 4_000_000_000 - sample["used_mem"],
-            "source": "alltest-source",
-        }
-        try:
-            sock.sendall((json.dumps(payload) + "\n").encode("utf-8"))
-        except Exception as exc:
-            LOG.warning("Telegraf send failed: %s", exc)
-            try:
-                sock.close()
-            except Exception:
-                pass
-            sock = None
-        i += 1
-        STOP.wait(INTERVAL)
-
-    if sock is not None:
-        try:
-            sock.close()
-        except Exception:
-            pass
-
-
 def main():
     install_signal_handlers()
     LOG.info("Starting ALLTEST metrics source")
@@ -239,7 +185,6 @@ def main():
         threading.Thread(target=prometheus_loop, name="prometheus", daemon=True),
         threading.Thread(target=kafka_loop, name="kafka", daemon=True),
         threading.Thread(target=mqtt_loop, name="mqtt", daemon=True),
-        threading.Thread(target=telegraf_loop, name="telegraf", daemon=True),
     ]
     for thread in threads:
         thread.start()

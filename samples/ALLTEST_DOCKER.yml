@@ -50,6 +50,7 @@ Sequence:
           ExecutionId: "@{ExecutionId}"
           Measurement: Telegraf
           Stop: "stop_telegraf"
+          Port: 8094
           Encryption: False
       - Task: Flow.Sequence
         Children:
@@ -120,4 +121,3 @@ Dashboard:
     Position: [8, 0]
     Lines: True
     Percentage: False
-

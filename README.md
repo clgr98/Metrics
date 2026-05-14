@@ -8,9 +8,11 @@ that lets ELCM test these collectors:
 - `Run.KafkaConsumerToInflux`
 - `Run.MqttToInflux`
 - `Run.PrometheusToInflux`
+- `Run.TelegrafToInflux`
 
 The Python source image publishes synthetic sensor values to Kafka and MQTT, exposes
-Windows-like Prometheus metrics, and can optionally send Telegraf-style JSON to ELCM.
+Windows-like Prometheus metrics, and the stack includes a real Telegraf agent that
+sends JSON metrics to ELCM's `Run.TelegrafToInflux` TCP listener.
 
 ## Start
 
@@ -24,6 +26,8 @@ Services exposed on the host:
 - MQTT: `1885`
 - Prometheus: `9090`
 - Raw exporter debug endpoint: `8000`
+
+Telegraf does not expose a host port. It connects out to ELCM on TCP `8094`.
 
 Prometheus should be available at:
 
@@ -49,22 +53,28 @@ docker compose up -d --build
 Then use that same host/IP in the testcase for Kafka `Ip`, MQTT `Broker`, and
 Prometheus `Url`.
 
-## Optional Telegraf Test
+## Telegraf Test
 
-The sample contains `Run.TelegrafToInflux`, but the metrics stack keeps its Telegraf
-sender disabled by default because ELCM must be listening on TCP `8094`.
-
-Enable it only when the ELCM task is running and reachable:
+The sample contains `Run.TelegrafToInflux` listening on TCP `8094`. If ELCM is
+running inside `ELCM-Env`, start Metrics with the ELCM network override:
 
 ```powershell
-$env:ALLTEST_TELEGRAF_ENABLED="true"
-$env:ALLTEST_TELEGRAF_HOST="host.docker.internal"
-$env:ALLTEST_TELEGRAF_PORT="8094"
-docker compose up -d --build
+docker compose -f docker-compose.yml -f docker-compose.elcm.yml up -d --build
 ```
 
-If ELCM is running inside Docker, expose port `8094` from the ELCM container before
-enabling this sender.
+That override connects `alltest-telegraf` to Docker network `elcm-env_default` and
+sends metrics to `tcp://elcm:8094`.
+
+Until an ELCM execution starts `Run.TelegrafToInflux`, Telegraf may log connection
+refused messages for `8094`; it retries and connects when the task opens the socket.
+
+If ELCM is running directly on the host or another VM, point Telegraf at that TCP
+listener:
+
+```powershell
+$env:ALLTEST_TELEGRAF_OUTPUT_SOCKET="tcp://host.docker.internal:8094"
+docker compose up -d --build
+```
 
 ## Stop
 
@@ -93,3 +103,6 @@ Prometheus exposes:
 - `windows_logical_disk_write_bytes_total`
 - `windows_logical_disk_read_bytes_total`
 - `process_cpu_seconds_total`
+
+Telegraf sends JSON metrics with names such as `mem` and `cpu`; ELCM adapts the
+`mem.used` field into dashboard field `used_mem`.
