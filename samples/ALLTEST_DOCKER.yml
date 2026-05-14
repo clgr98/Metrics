@@ -1,0 +1,123 @@
+Version: 2
+Name: ALLTEST_DOCKER
+Sequence:
+  - Order: 1
+    Task: Flow.Parallel
+    Children:
+      - Task: Run.KafkaConsumerToInflux
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          Ip: "host.docker.internal"
+          Port: "9092"
+          Topic: "sensor_data_morse"
+          Measurement: KAFKA
+          Stop: "stop_kafka"
+          Account: False
+          Encryption: False
+      - Task: Run.PrometheusToInflux
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          Url: "host.docker.internal"
+          Port: "9090"
+          QueriesRange:
+            - "windows_net_bytes_received_total"
+            - "windows_net_bytes_sent_total"
+            - "windows_logical_disk_write_bytes_total"
+            - "windows_logical_disk_read_bytes_total"
+          QueriesCustom:
+            - "windows_net_bytes_received_total[5m]"
+            - "windows_net_bytes_sent_total[5m]"
+            - "windows_logical_disk_write_bytes_total[5m]"
+            - "windows_logical_disk_read_bytes_total[5m]"
+            - "process_cpu_seconds_total"
+          Measurement: PROMETHEUS
+          Step: "1s"
+          Stop: "stop_prometheus"
+          Account: False
+          Encryption: False
+      - Task: Run.MqttToInflux
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          Broker: "host.docker.internal"
+          Port: "1885"
+          Topic: "mi/topic/elcm"
+          Measurement: MQTT
+          Stop: "stop_mqtt"
+          Account: False
+          Encryption: False
+      - Task: Run.TelegrafToInflux
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          Measurement: Telegraf
+          Stop: "stop_telegraf"
+          Encryption: False
+      - Task: Flow.Sequence
+        Children:
+          - Task: Run.Delay
+            Config:
+              Time: 60
+          - Task: Run.AddMilestone
+            Config:
+              Milestone: "stop_kafka"
+          - Task: Run.AddMilestone
+            Config:
+              Milestone: "stop_prometheus"
+          - Task: Run.AddMilestone
+            Config:
+              Milestone: "stop_mqtt"
+          - Task: Run.AddMilestone
+            Config:
+              Milestone: "stop_telegraf"
+Standard: True
+Dashboard:
+  - Name: "Temperature_KAFKA"
+    Measurement: "KAFKA"
+    Field: "temperature"
+    Type: Graph
+    Interval: 1s
+    Unit: celsius
+    Size: [9, 12]
+    Position: [8, 0]
+    Lines: True
+    Percentage: False
+  - Name: "Humidity_KAFKA"
+    Measurement: "KAFKA"
+    Field: "humidity"
+    Type: Graph
+    Interval: 1s
+    Unit: percent
+    Size: [9, 12]
+    Position: [8, 0]
+    Lines: True
+    Percentage: False
+  - Name: "windows_net_bytes_received_total"
+    Measurement: "PROMETHEUS"
+    Field: "windows_net_bytes_received_total"
+    Type: Graph
+    Interval: 1s
+    Unit: bytes
+    Size: [9, 12]
+    Position: [8, 0]
+    Lines: True
+    Percentage: False
+  - Name: "Temperature_MQTT"
+    Measurement: "MQTT"
+    Field: "temperatura"
+    Type: Graph
+    Interval: 1s
+    Unit: celsius
+    Size: [9, 12]
+    Position: [8, 0]
+    Lines: True
+    Percentage: False
+  - Name: "MEM_USED"
+    Measurement: "Telegraf"
+    Field: "used_mem"
+    Type: Graph
+    Interval: 1s
+    Unit: bytes
+    Size: [9, 12]
+    Position: [8, 0]
+    Lines: True
+    Percentage: False
+
