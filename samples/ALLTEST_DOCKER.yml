@@ -6,8 +6,8 @@ Sequence:
       - Task: Run.KafkaConsumerToInflux
         Config:
           ExecutionId: "@{ExecutionId}"
-          Ip: "host.docker.internal"
-          Port: "9092"
+          Ip: "alltest-kafka"
+          Port: "29092"
           Topic: "sensor_data_morse"
           Measurement: KAFKA
           Stop: "stop_kafka"
@@ -16,7 +16,7 @@ Sequence:
       - Task: Run.PrometheusToInflux
         Config:
           ExecutionId: "@{ExecutionId}"
-          Url: "host.docker.internal"
+          Url: "alltest-prometheus"
           Port: "9090"
           QueriesRange:
             - "windows_net_bytes_received_total"
@@ -37,7 +37,7 @@ Sequence:
       - Task: Run.MqttToInflux
         Config:
           ExecutionId: "@{ExecutionId}"
-          Broker: "host.docker.internal"
+          Broker: "alltest-mqtt"
           Port: "1885"
           Topic: "mi/topic/elcm"
           Measurement: MQTT

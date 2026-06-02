@@ -16,6 +16,8 @@ sends JSON metrics to ELCM's `Run.TelegrafToInflux` TCP listener.
 
 ## Start
 
+Start ELCM-Env first, then start Metrics:
+
 ```powershell
 docker compose up -d --build
 ```
@@ -35,46 +37,25 @@ Prometheus should be available at:
 http://localhost:9090
 ```
 
-## Use With ELCM In Docker Desktop
+## Use With ELCM-Env
 
-Use [samples/ALLTEST_DOCKER.yml](samples/ALLTEST_DOCKER.yml). It points Kafka, MQTT
-and Prometheus to `host.docker.internal`, which ELCM containers can resolve on Docker
-Desktop.
+Use [samples/ALLTEST_DOCKER.yml](samples/ALLTEST_DOCKER.yml). Metrics attaches Kafka,
+MQTT, Prometheus, and Telegraf to Docker network `elcm-env_default`, so ELCM reaches
+them by container name:
 
-For Kafka, the broker advertises `host.docker.internal:9092` by default. If ELCM runs
-outside Docker or from another VM, start the stack with an address that the ELCM process
-can reach:
-
-```powershell
-$env:ALLTEST_KAFKA_ADVERTISED_HOST="192.168.239.131"
-docker compose up -d --build
-```
-
-Then use that same host/IP in the testcase for Kafka `Ip`, MQTT `Broker`, and
-Prometheus `Url`.
+- Kafka: `alltest-kafka:29092`
+- MQTT: `alltest-mqtt:1885`
+- Prometheus: `alltest-prometheus:9090`
+- Telegraf output: `elcm:8094`
 
 ## Telegraf Test
 
-The sample contains `Run.TelegrafToInflux` listening on TCP `8094`. If ELCM is
-running inside `ELCM-Env`, start Metrics with the ELCM network override:
-
-```powershell
-docker compose -f docker-compose.yml -f docker-compose.elcm.yml up -d --build
-```
-
-That override connects `alltest-telegraf` to Docker network `elcm-env_default` and
-sends metrics to `tcp://elcm:8094`.
+The sample contains `Run.TelegrafToInflux` listening on TCP `8094`. Metrics connects
+`alltest-telegraf` to Docker network `elcm-env_default` and sends metrics to
+`tcp://elcm:8094`.
 
 Until an ELCM execution starts `Run.TelegrafToInflux`, Telegraf may log connection
-refused messages for `8094`; it retries and connects when the task opens the socket.
-
-If ELCM is running directly on the host or another VM, point Telegraf at that TCP
-listener:
-
-```powershell
-$env:ALLTEST_TELEGRAF_OUTPUT_SOCKET="tcp://host.docker.internal:8094"
-docker compose up -d --build
-```
+refused messages for `8094`; Docker restarts it until the task opens the socket.
 
 ## Stop
 
