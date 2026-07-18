@@ -10,6 +10,9 @@ that lets ELCM test these collectors:
 - `Run.PrometheusToInflux`
 - `Run.TelegrafToInflux`
 
+External runtime images and the source-image base are pinned by digest. See
+[IMAGE_LOCKS.md](IMAGE_LOCKS.md) for the selected releases and update procedure.
+
 The Python source image publishes synthetic sensor values to Kafka and MQTT, exposes
 Windows-like Prometheus metrics, and the stack includes a real Telegraf agent that
 sends JSON metrics to ELCM's `Run.TelegrafToInflux` TCP listener.

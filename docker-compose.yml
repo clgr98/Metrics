@@ -1,6 +1,6 @@
 services:
   alltest-kafka:
-    image: apache/kafka:4.1.1
+    image: apache/kafka:4.1.1@sha256:0bc1bb2478f45b6cea78864df86acdc11e8df2c5172477819a4d12942cbe5d40
     container_name: alltest-kafka
     ports:
       - "${ALLTEST_KAFKA_PORT:-9092}:9092"
@@ -29,7 +29,7 @@ services:
       - elcm_env
 
   alltest-mqtt:
-    image: eclipse-mosquitto:2.0
+    image: eclipse-mosquitto:2.0@sha256:212f89e1eaeb2c322d6441b64396e3346026674db8fa9c27beac293405c32b3c
     container_name: alltest-mqtt
     ports:
       - "${ALLTEST_MQTT_PORT:-1885}:1885"
@@ -61,7 +61,7 @@ services:
       PUBLISH_INTERVAL_SECONDS: ${ALLTEST_INTERVAL_SECONDS:-1}
 
   alltest-telegraf:
-    image: telegraf:1.34
+    image: telegraf:1.34@sha256:2173764352db5591bebe02d3f965cc64cdd357ff8439f57e45b6a1885eb50333
     container_name: alltest-telegraf
     restart: unless-stopped
     environment:
@@ -74,7 +74,7 @@ services:
       - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
 
   alltest-prometheus:
-    image: prom/prometheus:v2.55.1
+    image: prom/prometheus:v2.55.1@sha256:2659f4c2ebb718e7695cb9b25ffa7d6be64db013daba13e05c875451cf51b0d3
     container_name: alltest-prometheus
     depends_on:
       alltest-source:
