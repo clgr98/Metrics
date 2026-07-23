@@ -69,6 +69,18 @@ Panels that compare several fields define explicit `Legend` lists, so Grafana
 shows names such as `DL MCS`, `UL MCS`, `PUSCH SNR` and `PUCCH SNR` instead of
 an ambiguous `_value` or repeated `ue01`.
 
+For a controlled channel experiment, upload
+[samples/OCUDU_OAI_CHANNEL_COMPARISON.yml](samples/OCUDU_OAI_CHANNEL_COMPARISON.yml).
+It runs the same ping and iPerf2 workloads twice through the ZeroMQ I/Q relay.
+Both conditions use deterministic -40 dBFS noise; the baseline applies 0 dB
+attenuation and the second condition applies 6 dB in both directions. The
+dashboard pairs timestamped
+`radio_channel_ground_truth_timeseries` values with observed RSRP, SNR, CQI,
+HARQ error rate, throughput and RTT. Every multi-series panel has explicit
+legends and every panel follows the 24-column two-column grid. The iPerf2
+client is routed through the UE tunnel and bound to its PDU address, so the
+throughput series cannot bypass the radio over Docker `eth0`.
+
 ## Dashboard Layout
 
 Grafana uses a 24-column grid. Dashboard geometry in ELCM test cases is defined as:
@@ -138,4 +150,5 @@ Run the repository checks before uploading the sample:
 ```powershell
 ./tests/oai-radio-metrics-contract.ps1
 ./tests/telegraf-freshness-contract.ps1
+./tests/oai-channel-comparison-contract.ps1
 ```

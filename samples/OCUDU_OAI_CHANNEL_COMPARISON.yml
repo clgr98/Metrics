@@ -1,0 +1,274 @@
+Name: OCUDU_OAI_CHANNEL_COMPARISON
+Description: Compares the same ping and iPerf2 loads over an OCUDU/OAI ZeroMQ I/Q relay with constant -40 dBFS noise and either 0 or 6 dB of bidirectional attenuation.
+Sequence:
+  - Order: 1
+    Task: Run.VirtualLabPrepare
+    Config:
+      ExecutionId: "@{ExecutionId}"
+      TimeoutSeconds: 600
+      PollIntervalSeconds: 2
+      Services:
+        - "iperf2-server"
+      Ues:
+        Count: 1
+        StartIndex: 1
+        WaitForRegistration: true
+        RegistrationTimeout: 180
+
+  - Order: 2
+    Task: Flow.Sequence
+    Label: baseline_then_attenuation
+    Children:
+      - Task: Run.VirtualWorkload
+        Label: baseline_ping
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          TimeoutSeconds: 600
+          Ues:
+            Count: 1
+            Prefix: "ue"
+            StartIndex: 1
+            RegistrationTimeout: 180
+          RadioChannel:
+            Profile: baseline-noise40
+            DownlinkAttenuationDb: 0
+            UplinkAttenuationDb: 0
+            NoisePowerDbfs: -40
+          Workload:
+            Type: ping
+            Target: "10.45.0.1"
+            Duration: 8
+            Count: 16
+            Interval: 0.5
+            MetricsInterval: 1
+          FailurePolicy:
+            OnWorkloadFailure: abort
+          Tags:
+            ExecutionId: "@{ExecutionId}"
+            service: ping
+            use_case: latency
+            scenario: ocudu_oai_channel_comparison
+            condition: baseline-noise40
+            target_host: "10.45.0.1"
+            protocol: icmp
+
+      - Task: Run.VirtualWorkload
+        Label: baseline_iperf2
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          TimeoutSeconds: 600
+          Ues:
+            Count: 1
+            Prefix: "ue"
+            StartIndex: 1
+            RegistrationTimeout: 180
+          RadioChannel:
+            Profile: baseline-noise40
+            DownlinkAttenuationDb: 0
+            UplinkAttenuationDb: 0
+            NoisePowerDbfs: -40
+          Workload:
+            Type: iperf2
+            Commands: "-c iperf2-server -p 5001 -t 15 -i 1 -P 1"
+            MetricsInterval: 1
+          FailurePolicy:
+            OnWorkloadFailure: abort
+          Tags:
+            ExecutionId: "@{ExecutionId}"
+            service: iperf2
+            use_case: throughput
+            scenario: ocudu_oai_channel_comparison
+            condition: baseline-noise40
+            host: iperf2-server
+            protocol: tcp
+
+      - Task: Run.VirtualWorkload
+        Label: attenuation_6db_ping
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          TimeoutSeconds: 600
+          Ues:
+            Count: 1
+            Prefix: "ue"
+            StartIndex: 1
+            RegistrationTimeout: 180
+          RadioChannel:
+            Profile: attenuation-6db-noise40
+            DownlinkAttenuationDb: 6
+            UplinkAttenuationDb: 6
+            NoisePowerDbfs: -40
+          Workload:
+            Type: ping
+            Target: "10.45.0.1"
+            Duration: 8
+            Count: 16
+            Interval: 0.5
+            MetricsInterval: 1
+          FailurePolicy:
+            OnWorkloadFailure: abort
+          Tags:
+            ExecutionId: "@{ExecutionId}"
+            service: ping
+            use_case: latency
+            scenario: ocudu_oai_channel_comparison
+            condition: attenuation-6db-noise40
+            target_host: "10.45.0.1"
+            protocol: icmp
+
+      - Task: Run.VirtualWorkload
+        Label: attenuation_6db_iperf2
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          TimeoutSeconds: 600
+          Ues:
+            Count: 1
+            Prefix: "ue"
+            StartIndex: 1
+            RegistrationTimeout: 180
+          RadioChannel:
+            Profile: attenuation-6db-noise40
+            DownlinkAttenuationDb: 6
+            UplinkAttenuationDb: 6
+            NoisePowerDbfs: -40
+          Workload:
+            Type: iperf2
+            Commands: "-c iperf2-server -p 5001 -t 15 -i 1 -P 1"
+            MetricsInterval: 1
+          FailurePolicy:
+            OnWorkloadFailure: abort
+          Tags:
+            ExecutionId: "@{ExecutionId}"
+            service: iperf2
+            use_case: throughput
+            scenario: ocudu_oai_channel_comparison
+            condition: attenuation-6db-noise40
+            host: iperf2-server
+            protocol: tcp
+
+  - Order: 3
+    Task: Run.WaitForInflux
+    Config:
+      ExecutionId: "@{ExecutionId}"
+      TimeoutSeconds: 180
+      CheckInterval: 5
+      TimeWindow: 600
+
+Standard: true
+Dashboard:
+  - Name: "Applied attenuation"
+    Measurement: "radio_channel_ground_truth_timeseries"
+    Fields:
+      - "ue01_channel_downlink_attenuation_db"
+      - "ue01_channel_uplink_attenuation_db"
+    Legend:
+      - "DL attenuation"
+      - "UL attenuation"
+    Type: Graph
+    Interval: 1s
+    Unit: dB
+    Size: [8, 12]
+    Position: [0, 0]
+    Lines: true
+    Dots: true
+    Percentage: false
+
+  - Name: "Applied noise power"
+    Measurement: "radio_channel_ground_truth_timeseries"
+    Field: "ue01_channel_noise_power_dbfs"
+    Legend:
+      - "Noise power"
+    Type: Graph
+    Interval: 1s
+    Unit: dB
+    Size: [8, 12]
+    Position: [12, 0]
+    Lines: true
+    Dots: true
+    Percentage: false
+
+  - Name: "PUSCH RSRP"
+    Measurement: "radio_channel_timeseries"
+    Field: "ue01_radio_pusch_rsrp_db"
+    Legend:
+      - "PUSCH RSRP"
+    Type: Graph
+    Interval: 1s
+    Unit: dB
+    Size: [8, 12]
+    Position: [0, 8]
+    Lines: true
+    Dots: true
+    Percentage: false
+
+  - Name: "PUSCH SNR"
+    Measurement: "radio_channel_timeseries"
+    Field: "ue01_radio_pusch_snr_db"
+    Legend:
+      - "PUSCH SNR"
+    Type: Graph
+    Interval: 1s
+    Unit: dB
+    Size: [8, 12]
+    Position: [12, 8]
+    Lines: true
+    Dots: true
+    Percentage: false
+
+  - Name: "5G CQI"
+    Measurement: "virtual_ran_ue_timeseries"
+    Field: "ue01_ran_cqi"
+    Legend:
+      - "CQI"
+    Type: Graph
+    Interval: 1s
+    Unit: short
+    Size: [8, 12]
+    Position: [0, 16]
+    Lines: true
+    Dots: true
+    Percentage: false
+
+  - Name: "HARQ error rate"
+    Measurement: "virtual_ran_ue_timeseries"
+    Fields:
+      - "ue01_ran_dl_harq_error_percent"
+      - "ue01_ran_ul_harq_error_percent"
+    Legend:
+      - "DL HARQ error"
+      - "UL HARQ error"
+    Type: Graph
+    Interval: 1s
+    Unit: percent
+    Size: [8, 12]
+    Position: [12, 16]
+    Lines: true
+    Dots: true
+    Percentage: false
+
+  - Name: "iPerf2 throughput"
+    Measurement: "virtual_ue_iperf2_timeseries"
+    Field: "ue01_iperf2_tcp_stream_total_throughput_bps"
+    Legend:
+      - "TCP throughput"
+    Type: Graph
+    Interval: 1s
+    Unit: bps
+    Size: [8, 12]
+    Position: [0, 24]
+    Lines: true
+    Dots: false
+    Percentage: false
+
+  - Name: "Ping RTT"
+    Measurement: "virtual_ue_ping_timeseries"
+    Field: "ue01_ping_rtt_avg_ms"
+    Legend:
+      - "Ping RTT"
+    Type: Graph
+    Interval: 1s
+    Unit: ms
+    Size: [8, 12]
+    Position: [12, 24]
+    Lines: true
+    Dots: true
+    Percentage: false
