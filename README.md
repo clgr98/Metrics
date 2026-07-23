@@ -51,6 +51,24 @@ them by container name:
 - Prometheus: `alltest-prometheus:9090`
 - Telegraf output: `elcm:8094`
 
+For the OCUDU/OAI virtual-radio path, select the `oai` backend in Portal System
+Configuration and upload
+[samples/OCUDU_OAI_RADIO_METRICS.yml](samples/OCUDU_OAI_RADIO_METRICS.yml).
+The sample uses one OAI UE, runs ping followed by iPerf2, keeps the four Metrics
+collectors active, and adds dashboards backed by:
+
+- `virtual_ran_ue_timeseries` for CQI, MCS, scheduler bitrate and HARQ results.
+- `radio_channel_timeseries` for SNR, RSRP and timing advance.
+
+The testcase does not declare a legacy RAN type. ELCM uses the backend metadata
+returned by Lab-Proxy and writes `ran_backend=oai`,
+`ran_type=ocudu_oai_zmq`, `experiment_mode=virtual_oai` and
+`agent_type=oai` to InfluxDB.
+
+Panels that compare several fields define explicit `Legend` lists, so Grafana
+shows names such as `DL MCS`, `UL MCS`, `PUSCH SNR` and `PUCCH SNR` instead of
+an ambiguous `_value` or repeated `ue01`.
+
 ## Dashboard Layout
 
 Grafana uses a 24-column grid. Dashboard geometry in ELCM test cases is defined as:
@@ -78,7 +96,9 @@ The sample contains `Run.TelegrafToInflux` listening on TCP `8094`. Metrics conn
 `tcp://elcm:8094`.
 
 Until an ELCM execution starts `Run.TelegrafToInflux`, Telegraf may log connection
-refused messages for `8094`; Docker restarts it until the task opens the socket.
+refused messages for `8094`. Its output buffer is deliberately limited to two
+collection intervals, so the next execution receives current samples instead of
+replaying minutes of data from a previous closed listener.
 
 ## Stop
 
@@ -110,3 +130,12 @@ Prometheus exposes:
 
 Telegraf sends JSON metrics with names such as `mem` and `cpu`; ELCM adapts the
 `mem.used` field into dashboard field `used_mem`.
+
+## Contracts
+
+Run the repository checks before uploading the sample:
+
+```powershell
+./tests/oai-radio-metrics-contract.ps1
+./tests/telegraf-freshness-contract.ps1
+```
