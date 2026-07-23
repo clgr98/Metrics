@@ -1,0 +1,194 @@
+Name: ALLTEST_DOCKER_IPERF2
+Description: Validates the Metrics collectors while three virtual UEs run an iPerf2 TCP workload.
+Sequence:
+  - Order: 1
+    Task: Run.VirtualLabPrepare
+    Config:
+      ExecutionId: "@{ExecutionId}"
+      TimeoutSeconds: 600
+      PollIntervalSeconds: 2
+      Services:
+        - "iperf2-server"
+      Ues:
+        Count: 3
+        StartIndex: 1
+        WaitForRegistration: true
+        RegistrationTimeout: 90
+
+  - Order: 2
+    Task: Flow.Parallel
+    Children:
+      - Task: Run.KafkaConsumerToInflux
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          Ip: "alltest-kafka"
+          Port: "29092"
+          Topic: "sensor_data_morse"
+          Measurement: KAFKA
+          Stop: "stop_kafka"
+          Account: false
+          Encryption: false
+
+      - Task: Run.PrometheusToInflux
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          Url: "alltest-prometheus"
+          Port: "9090"
+          QueriesRange:
+            - "windows_net_bytes_received_total"
+            - "windows_net_bytes_sent_total"
+            - "windows_logical_disk_write_bytes_total"
+            - "windows_logical_disk_read_bytes_total"
+          QueriesCustom:
+            - "windows_net_bytes_received_total[5m]"
+            - "windows_net_bytes_sent_total[5m]"
+            - "windows_logical_disk_write_bytes_total[5m]"
+            - "windows_logical_disk_read_bytes_total[5m]"
+            - "process_cpu_seconds_total"
+          Measurement: PROMETHEUS
+          Step: "1s"
+          Stop: "stop_prometheus"
+          Account: false
+          Encryption: false
+
+      - Task: Run.MqttToInflux
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          Broker: "alltest-mqtt"
+          Port: "1885"
+          Topic: "mi/topic/elcm"
+          Measurement: MQTT
+          Stop: "stop_mqtt"
+          Account: false
+          Encryption: false
+
+      - Task: Run.TelegrafToInflux
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          Measurement: Telegraf
+          Stop: "stop_telegraf"
+          Port: 8094
+          Encryption: false
+
+      - Task: Run.VirtualWorkload
+        Config:
+          ExecutionId: "@{ExecutionId}"
+          TimeoutSeconds: 600
+          Ues:
+            Count: 3
+            Prefix: "ue"
+            StartIndex: 1
+          Workload:
+            Type: iperf2
+            Commands: "-c iperf2-server -p 5001 -t 60 -i 1 -P 5"
+            MetricsInterval: 1
+          FailurePolicy:
+            OnWorkloadFailure: continue
+          Tags:
+            ExecutionId: "@{ExecutionId}"
+            experiment_mode: virtual_ueransim
+            agent_type: ueransim
+            service: iperf2
+            use_case: throughput
+            scenario: metrics_collectors_with_iperf2_tcp_60s
+            host: iperf2-server
+            protocol: tcp
+            interface: uesimtun0
+
+      - Task: Flow.Sequence
+        Children:
+          - Task: Run.Delay
+            Config:
+              Time: 75
+          - Task: Run.AddMilestone
+            Config:
+              Milestone: "stop_kafka"
+          - Task: Run.AddMilestone
+            Config:
+              Milestone: "stop_prometheus"
+          - Task: Run.AddMilestone
+            Config:
+              Milestone: "stop_mqtt"
+          - Task: Run.AddMilestone
+            Config:
+              Milestone: "stop_telegraf"
+
+  - Order: 3
+    Task: Run.WaitForInflux
+    Config:
+      ExecutionId: "@{ExecutionId}"
+      TimeoutSeconds: 180
+      CheckInterval: 5
+      TimeWindow: 180
+
+Standard: true
+Dashboard:
+  - Name: "Temperature KAFKA"
+    Measurement: "KAFKA"
+    Field: "temperature"
+    Type: Graph
+    Interval: 1s
+    Unit: celsius
+    Size: [8, 12]
+    Position: [0, 0]
+    Lines: true
+    Percentage: false
+
+  - Name: "Humidity KAFKA"
+    Measurement: "KAFKA"
+    Field: "humidity"
+    Type: Graph
+    Interval: 1s
+    Unit: percent
+    Size: [8, 12]
+    Position: [0, 12]
+    Lines: true
+    Percentage: false
+
+  - Name: "Prometheus network received"
+    Measurement: "PROMETHEUS"
+    Field: "windows_net_bytes_received_total"
+    Type: Graph
+    Interval: 1s
+    Unit: bytes
+    Size: [8, 12]
+    Position: [8, 0]
+    Lines: true
+    Percentage: false
+
+  - Name: "Temperature MQTT"
+    Measurement: "MQTT"
+    Field: "temperatura"
+    Type: Graph
+    Interval: 1s
+    Unit: celsius
+    Size: [8, 12]
+    Position: [8, 12]
+    Lines: true
+    Percentage: false
+
+  - Name: "Memory used Telegraf"
+    Measurement: "Telegraf"
+    Field: "used_mem"
+    Type: Graph
+    Interval: 1s
+    Unit: bytes
+    Size: [8, 12]
+    Position: [16, 0]
+    Lines: true
+    Percentage: false
+
+  - Name: "iPerf2 throughput per UE"
+    Measurement: "virtual_ue_iperf2_timeseries"
+    Fields:
+      - "ue01_iperf2_tcp_stream_total_throughput_bps"
+      - "ue02_iperf2_tcp_stream_total_throughput_bps"
+      - "ue03_iperf2_tcp_stream_total_throughput_bps"
+    Type: Graph
+    Interval: 1s
+    Unit: bps
+    Size: [8, 12]
+    Position: [16, 12]
+    Lines: true
+    Dots: false
+    Percentage: false
