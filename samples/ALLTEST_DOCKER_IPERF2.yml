@@ -1,5 +1,5 @@
 Name: ALLTEST_DOCKER_IPERF2
-Description: Validates the Metrics collectors while three virtual UEs run an iPerf2 TCP workload.
+Description: Validates the Metrics collectors while three virtual UEs run a short ping followed by an iPerf2 TCP workload.
 Sequence:
   - Order: 1
     Task: Run.VirtualLabPrepare
@@ -70,30 +70,63 @@ Sequence:
           Port: 8094
           Encryption: false
 
-      - Task: Run.VirtualWorkload
-        Config:
-          ExecutionId: "@{ExecutionId}"
-          TimeoutSeconds: 600
-          Ues:
-            Count: 3
-            Prefix: "ue"
-            StartIndex: 1
-          Workload:
-            Type: iperf2
-            Commands: "-c iperf2-server -p 5001 -t 60 -i 1 -P 5"
-            MetricsInterval: 1
-          FailurePolicy:
-            OnWorkloadFailure: continue
-          Tags:
-            ExecutionId: "@{ExecutionId}"
-            experiment_mode: virtual_ueransim
-            agent_type: ueransim
-            service: iperf2
-            use_case: throughput
-            scenario: metrics_collectors_with_iperf2_tcp_60s
-            host: iperf2-server
-            protocol: tcp
-            interface: uesimtun0
+      - Task: Flow.Sequence
+        Label: ping_then_iperf2
+        Children:
+          - Task: Run.VirtualWorkload
+            Label: ping_10s
+            Config:
+              ExecutionId: "@{ExecutionId}"
+              TimeoutSeconds: 600
+              Ues:
+                Count: 3
+                Prefix: "ue"
+                StartIndex: 1
+              Workload:
+                Type: ping
+                Target: "10.45.0.1"
+                Duration: 10
+                Count: 20
+                Interval: 0.5
+                MetricsInterval: 1
+              FailurePolicy:
+                OnWorkloadFailure: continue
+              Tags:
+                ExecutionId: "@{ExecutionId}"
+                experiment_mode: virtual_ueransim
+                agent_type: ueransim
+                service: ping
+                use_case: latency
+                scenario: metrics_collectors_ping_then_iperf2
+                target_host: "10.45.0.1"
+                protocol: icmp
+                interface: uesimtun0
+
+          - Task: Run.VirtualWorkload
+            Label: iperf2_tcp_60s
+            Config:
+              ExecutionId: "@{ExecutionId}"
+              TimeoutSeconds: 600
+              Ues:
+                Count: 3
+                Prefix: "ue"
+                StartIndex: 1
+              Workload:
+                Type: iperf2
+                Commands: "-c iperf2-server -p 5001 -t 60 -i 1 -P 5"
+                MetricsInterval: 1
+              FailurePolicy:
+                OnWorkloadFailure: continue
+              Tags:
+                ExecutionId: "@{ExecutionId}"
+                experiment_mode: virtual_ueransim
+                agent_type: ueransim
+                service: iperf2
+                use_case: throughput
+                scenario: metrics_collectors_ping_then_iperf2
+                host: iperf2-server
+                protocol: tcp
+                interface: uesimtun0
 
       - Task: Flow.Sequence
         Children:
@@ -141,7 +174,7 @@ Dashboard:
     Interval: 1s
     Unit: percent
     Size: [8, 12]
-    Position: [0, 12]
+    Position: [12, 0]
     Lines: true
     Percentage: false
 
@@ -152,7 +185,7 @@ Dashboard:
     Interval: 1s
     Unit: bytes
     Size: [8, 12]
-    Position: [8, 0]
+    Position: [0, 8]
     Lines: true
     Percentage: false
 
@@ -163,7 +196,7 @@ Dashboard:
     Interval: 1s
     Unit: celsius
     Size: [8, 12]
-    Position: [8, 12]
+    Position: [12, 8]
     Lines: true
     Percentage: false
 
@@ -174,7 +207,7 @@ Dashboard:
     Interval: 1s
     Unit: bytes
     Size: [8, 12]
-    Position: [16, 0]
+    Position: [0, 16]
     Lines: true
     Percentage: false
 
@@ -188,7 +221,37 @@ Dashboard:
     Interval: 1s
     Unit: bps
     Size: [8, 12]
-    Position: [16, 12]
+    Position: [12, 16]
+    Lines: true
+    Dots: false
+    Percentage: false
+
+  - Name: "Ping RTT avg per UE"
+    Measurement: "virtual_ue_ping_timeseries"
+    Fields:
+      - "ue01_ping_rtt_avg_ms"
+      - "ue02_ping_rtt_avg_ms"
+      - "ue03_ping_rtt_avg_ms"
+    Type: Graph
+    Interval: 1s
+    Unit: ms
+    Size: [8, 12]
+    Position: [0, 24]
+    Lines: true
+    Dots: false
+    Percentage: false
+
+  - Name: "Ping packet loss per UE"
+    Measurement: "virtual_ue_ping_timeseries"
+    Fields:
+      - "ue01_ping_packet_loss_percent"
+      - "ue02_ping_packet_loss_percent"
+      - "ue03_ping_packet_loss_percent"
+    Type: Graph
+    Interval: 1s
+    Unit: percent
+    Size: [8, 12]
+    Position: [12, 24]
     Lines: true
     Dots: false
     Percentage: false

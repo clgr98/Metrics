@@ -51,6 +51,26 @@ them by container name:
 - Prometheus: `alltest-prometheus:9090`
 - Telegraf output: `elcm:8094`
 
+## Dashboard Layout
+
+Grafana uses a 24-column grid. Dashboard geometry in ELCM test cases is defined as:
+
+```yaml
+Size: [height, width]
+Position: [x, y]
+```
+
+For a compact two-column layout with panels sized `[8, 12]`, use:
+
+```text
+[0, 0]   [12, 0]
+[0, 8]   [12, 8]
+[0, 16]  [12, 16]
+```
+
+The horizontal coordinate plus the panel width must not exceed 24, and dashboard
+panels must not overlap.
+
 ## Telegraf Test
 
 The sample contains `Run.TelegrafToInflux` listening on TCP `8094`. Metrics connects
