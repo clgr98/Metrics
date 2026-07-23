@@ -65,6 +65,10 @@ returned by Lab-Proxy and writes `ran_backend=oai`,
 `ran_type=ocudu_oai_zmq`, `experiment_mode=virtual_oai` and
 `agent_type=oai` to InfluxDB.
 
+Metrics has no control-plane role in the virtual RAN: it does not provision
+UEs, choose their count, configure the channel, or feed values back into the
+radio model. Its collectors only publish the telemetry emitted by a run.
+
 Panels that compare several fields define explicit `Legend` lists, so Grafana
 shows names such as `DL MCS`, `UL MCS`, `PUSCH SNR` and `PUCCH SNR` instead of
 an ambiguous `_value` or repeated `ue01`.

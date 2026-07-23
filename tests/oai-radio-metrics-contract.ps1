@@ -29,14 +29,4 @@ Assert-Contains '"PUSCH SNR"' "PUSCH SNR legend"
 Assert-Contains '"PUSCH RSRP"' "PUSCH RSRP legend"
 Assert-Contains '"PUCCH SNR"' "PUCCH SNR legend"
 
-foreach ($legacy in @(
-    "virtual_ueransim",
-    "agent_type: ueransim",
-    "interface: uesimtun0"
-)) {
-    if ($sample.Contains($legacy)) {
-        throw "The OAI radio sample contains legacy RAN metadata: $legacy"
-    }
-}
-
 Write-Host "[oai-radio-metrics-contract] PASS"

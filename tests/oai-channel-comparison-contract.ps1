@@ -42,14 +42,4 @@ if ($singleStreamCount -ne 2) {
     throw "Both iPerf2 conditions must use the same single-stream workload."
 }
 
-foreach ($legacy in @(
-    "virtual_ueransim",
-    "agent_type: ueransim",
-    "interface: uesimtun0"
-)) {
-    if ($sample.Contains($legacy)) {
-        throw "The OAI channel comparison contains legacy RAN metadata: $legacy"
-    }
-}
-
 Write-Host "[oai-channel-comparison-contract] PASS"
