@@ -67,7 +67,9 @@ returned by Lab-Proxy and writes `ran_backend=oai`,
 
 Metrics has no control-plane role in the virtual RAN: it does not provision
 UEs, choose their count, configure the channel, or feed values back into the
-radio model. Its collectors only publish the telemetry emitted by a run.
+radio model. Its collectors only publish the telemetry emitted by a run. The
+lab and its workloads remain valid if this optional stack or its output sink is
+unavailable; use these test cases only when validating task observability.
 
 Panels that compare several fields define explicit `Legend` lists, so Grafana
 shows names such as `DL MCS`, `UL MCS`, `PUSCH SNR` and `PUCCH SNR` instead of
